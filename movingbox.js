@@ -47,10 +47,10 @@ camera.position.y = 3.7;
 camera.position.z = 16;
 
 // Speed controls
-const globalSpeed = 1; // Global speed multiplier
-var renderSpeed = 0.6 * globalSpeed; // Time to wait (in seconds) before rendering the next row
-var moveSpeed = 0.1 * globalSpeed; // Speed of the movement
-var fadeSpeed = 0.1 * globalSpeed; // Speed of the opacity increase
+const globalSpeed = 1; // Global speed multiplier (scuffed for now)
+var renderSpeed = 0.2 * globalSpeed; // Time to wait (in seconds) before rendering the next row
+var moveSpeed = 0.5 * globalSpeed; // Speed of the movement
+var fadeSpeed = 0.2 * globalSpeed; // Speed of the opacity increase
 var moveDistance = 2; // Fixed amount of distance to move
 
 let currentRow = gridX - 1; // Start from the rightmost row
@@ -76,6 +76,7 @@ function renderRow() {
     }
 }
 
+//Fading the box in
 function fadeInBox(box, callback) {
     function fade() {
         if (box.material.opacity < 1) {
@@ -88,6 +89,7 @@ function fadeInBox(box, callback) {
     fade();
 }
 
+//Animate the box to move
 function animateBox(box, callback) {
     const targetPosition = box.position.x + moveDistance;
     function move() {
@@ -109,13 +111,15 @@ function render() {
 }
 
 // Log camera position on "p" key press
+// Just for testing purposes
 window.addEventListener('keydown', (event) => {
     if (event.key === 'p') {
         console.log(`Camera position: x=${camera.position.x}, y=${camera.position.y}, z=${camera.position.z}`);
     }
 });
 
-
-// Start rendering
-render();
-renderRow();
+// Start rendering when the button is clicked
+document.getElementById('startButton').addEventListener('click', () => {
+    render();
+    renderRow();
+});

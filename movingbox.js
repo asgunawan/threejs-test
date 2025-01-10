@@ -19,47 +19,103 @@ controls.maxPolarAngle = Math.PI;
 
 // Create box geometries and basic materials and combine them into meshes
 const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0 });
 const boxes = [];
 
-// Create and position the boxes in a grid
-const gridSize = 10;
+// Customize grid dimensions
+const gridX = 10; // Number of boxes along the x-axis
+const gridY = 3; // Number of boxes along the y-axis
+const gridZ = 4; // Number of boxes along the z-axis
 const spacing = 1.1;
-for (let i = 0; i < gridSize; i++) {
-    for (let j = 0; j < gridSize; j++) {
-        const box = new THREE.Mesh(geometry, material);
-        box.position.z = i * spacing;
-        box.position.y = j * spacing;
-        boxes.push(box);
-        scene.add(box);
+
+// Create and position the boxes in a customizable grid
+for (let i = 0; i < gridX; i++) {
+    for (let j = 0; j < gridY; j++) {
+        for (let k = 0; k < gridZ; k++) {
+            const box = new THREE.Mesh(geometry, material.clone());
+            box.position.x = i * spacing;
+            box.position.y = j * spacing;
+            box.position.z = k * spacing;
+            boxes.push(box);
+        }
     }
 }
 
 // Position the camera
-camera.position.x = 12;
-camera.position.y = 12;
-camera.position.z = 7;
+camera.position.x = -0.9;
+camera.position.y = 3.7;
+camera.position.z = 16;
 
-// Animation variables
-let speed = 1;
-let stopPosition = 5;
-let currentBoxIndex = 0;
+// Speed controls
+const globalSpeed = 1; // Global speed multiplier
+var renderSpeed = 0.6 * globalSpeed; // Time to wait (in seconds) before rendering the next row
+var moveSpeed = 0.1 * globalSpeed; // Speed of the movement
+var fadeSpeed = 0.1 * globalSpeed; // Speed of the opacity increase
+var moveDistance = 2; // Fixed amount of distance to move
 
-// Animation loop
-function animate() {
-    requestAnimationFrame(animate);
+let currentRow = gridX - 1; // Start from the rightmost row
+let currentBoxInRow = 0; // Track the current box in the row
 
-    // Move the boxes to the right in sequence
-    if (currentBoxIndex < boxes.length && boxes[currentBoxIndex].position.x < stopPosition) {
-        boxes[currentBoxIndex].position.x += speed;
-    } else if (currentBoxIndex < boxes.length) {
-        currentBoxIndex++;
+// Function to render one row at a time from right to left
+function renderRow() {
+    if (currentRow >= 0) {
+        if (currentBoxInRow < gridY * gridZ) {
+            const j = Math.floor(currentBoxInRow / gridZ);
+            const k = currentBoxInRow % gridZ;
+            const index = currentRow * gridY * gridZ + j * gridZ + k;
+            scene.add(boxes[index]);
+            fadeInBox(boxes[index], () => {
+                currentBoxInRow++;
+                renderRow();
+            });
+        } else {
+            currentRow--;
+            currentBoxInRow = 0;
+            setTimeout(renderRow, renderSpeed * 1000); // Wait before rendering the next row
+        }
     }
+}
 
+function fadeInBox(box, callback) {
+    function fade() {
+        if (box.material.opacity < 1) {
+            box.material.opacity += fadeSpeed;
+            requestAnimationFrame(fade);
+        } else {
+            animateBox(box, callback);
+        }
+    }
+    fade();
+}
+
+function animateBox(box, callback) {
+    const targetPosition = box.position.x + moveDistance;
+    function move() {
+        if (box.position.x < targetPosition) {
+            box.position.x += moveSpeed;
+            requestAnimationFrame(move);
+        } else {
+            callback();
+        }
+    }
+    move();
+}
+
+// Render the scene
+function render() {
+    requestAnimationFrame(render);
     controls.update(); // Update controls
-
     renderer.render(scene, camera);
 }
 
-// Start the animation loop
-animate();
+// Log camera position on "p" key press
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'p') {
+        console.log(`Camera position: x=${camera.position.x}, y=${camera.position.y}, z=${camera.position.z}`);
+    }
+});
+
+
+// Start rendering
+render();
+renderRow();

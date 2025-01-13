@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 
 let camera, scene, renderer;
@@ -29,6 +28,7 @@ function init() {
     scene.add( rollOverMesh );
 
     // cubes
+    //(texture is broken)
     const map = new THREE.TextureLoader().load( 'textures/square-outline-textured.png' );
     map.colorSpace = THREE.SRGBColorSpace;
     cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
@@ -68,6 +68,8 @@ function init() {
     document.addEventListener( 'keydown', onDocumentKeyDown );
     document.addEventListener( 'keyup', onDocumentKeyUp );
 
+    document.addEventListener('contextmenu', onDocumentRightClick, false);  
+    
     //
     window.addEventListener( 'resize', onWindowResize );
 
@@ -102,62 +104,78 @@ function onPointerMove( event ) {
 
 }
 
-function onPointerDown( event ) {
-    pointer.set( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1 );
-    raycaster.setFromCamera( pointer, camera );
-    const intersects = raycaster.intersectObjects( objects, false );
+function onPointerDown(event) {
+    if (event.button !== 0) return; // Only proceed if the left mouse button is pressed
 
-    if ( intersects.length > 0 ) {
+    pointer.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(objects, false);
 
-        const intersect = intersects[ 0 ];
+    if (intersects.length > 0) {
+        const intersect = intersects[0];
 
         // delete cube
-        if ( isShiftDown ) {
-            if ( intersect.object !== plane ) {
-                scene.remove( intersect.object );
-                objects.splice( objects.indexOf( intersect.object ), 1 );
+        if (isShiftDown) {
+            if (intersect.object !== plane) {
+                scene.remove(intersect.object);
+                objects.splice(objects.indexOf(intersect.object), 1);
             }
-
-            // create cube
         } else {
-
-            const voxel = new THREE.Mesh( cubeGeo, cubeMaterial );
-            voxel.position.copy( intersect.point ).add( intersect.face.normal );
-            voxel.position.divideScalar( 50 ).floor().multiplyScalar( 50 ).addScalar( 25 );
-            scene.add( voxel );
-
-            objects.push( voxel );
-
+            // create cube
+            const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
+            voxel.position.copy(intersect.point).add(intersect.face.normal);
+            voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+            scene.add(voxel);
+            objects.push(voxel);
         }
-
         render();
-
     }
-
 }
 
 function onDocumentKeyDown( event ) {
-
     switch ( event.keyCode ) {
-
         case 16: isShiftDown = true; break;
-
     }
-
 }
 
 function onDocumentKeyUp( event ) {
-
     switch ( event.keyCode ) {
-
         case 16: isShiftDown = false; break;
-
     }
 
 }
 
+let selectedCube = null;
+
+function onDocumentRightClick(event) {
+    event.preventDefault();
+
+    pointer.set((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+
+    const intersects = raycaster.intersectObjects(objects, false);
+
+    if (intersects.length > 0) {
+        if (selectedCube) {
+            // Place the cube down
+            const intersect = intersects[0];
+            selectedCube.position.copy(intersect.point).add(intersect.face.normal);
+            selectedCube.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+            console.log('Placing cube:', selectedCube);
+            selectedCube = null;
+            render(); // Render immediately after placing the cube
+        } else {
+            // Pick up the cube
+            selectedCube = intersects[0].object;
+            console.log('Picking up cube:', selectedCube);
+        }
+    } else {
+        console.log('No intersected objects');
+    }
+}
+
+
+
 function render() {
-
     renderer.render( scene, camera );
-
 }
